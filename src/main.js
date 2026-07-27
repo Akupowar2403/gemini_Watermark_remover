@@ -8,10 +8,15 @@ const downloadEl = document.getElementById('download');
 const runBtn = document.getElementById('run');
 const compareBtn = document.getElementById('compare');
 
-let box = null;        // selection in video pixels
-let scale = 1;         // display px per video px
+let source = null;     // the <video>, or an Image once one is loaded
+let isVideo = true;
+let srcType = '';
+let box = null;        // selection in source pixels
+let scale = 1;         // display px per source px
 let showFixed = true;
 let busy = false;
+
+const accepted = (f) => f.type.startsWith('video/') || f.type.startsWith('image/');
 
 document.getElementById('file').addEventListener('change', (e) => {
   if (e.target.files[0]) load(e.target.files[0]);
@@ -23,36 +28,54 @@ drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', (e) => {
   e.preventDefault();
   drop.classList.remove('over');
-  const vid = [...e.dataTransfer.files].find((f) => f.type.startsWith('video/'));
-  if (vid) load(vid);
+  const f = [...e.dataTransfer.files].find(accepted);
+  if (f) load(f);
 });
 
 async function load(file) {
   downloadEl.hidden = true;
-  video.src = URL.createObjectURL(file);
-  await new Promise((r) => video.addEventListener('loadeddata', r, { once: true }));
+  isVideo = file.type.startsWith('video/');
+  srcType = file.type;
+  const url = URL.createObjectURL(file);
+
+  let w, h;
+  if (isVideo) {
+    video.src = url;
+    await new Promise((r) => video.addEventListener('loadeddata', r, { once: true }));
+    source = video;
+    w = video.videoWidth; h = video.videoHeight;
+  } else {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    source = img;
+    w = img.naturalWidth; h = img.naturalHeight;
+  }
 
   const maxW = Math.min(880, window.innerWidth - 48);
-  scale = Math.min(1, maxW / video.videoWidth);
-  preview.width = video.videoWidth;
-  preview.height = video.videoHeight;
-  preview.style.width = `${video.videoWidth * scale}px`;
-  stage.style.width = `${video.videoWidth * scale}px`;
+  scale = Math.min(1, maxW / w);
+  preview.width = w;
+  preview.height = h;
+  preview.style.width = `${w * scale}px`;
+  stage.style.width = `${w * scale}px`;
 
   document.getElementById('editor').hidden = false;
   drop.classList.add('compact');
+  runBtn.textContent = isVideo ? 'Remove watermark' : 'Remove & save';
 
-  await seekTo(video, video.duration / 2);
+  if (isVideo) await seekTo(video, video.duration / 2);
   await autoDetect();
 }
 
 async function autoDetect() {
   statusEl.textContent = 'Looking for a watermark…';
-  const r = await detectWatermark(video);
+  // let the status paint before the scan blocks the thread
+  await new Promise(requestAnimationFrame);
+  const r = isVideo ? await detectWatermark(video) : detectInImage(source);
   box = r.box;
   statusEl.textContent = r.found
     ? 'Found it. Drag or resize the box if it is off.'
-    : 'Nothing obvious found — showing the Gemini sparkle position. Drag the box onto the watermark.';
+    : 'Nothing obvious found — showing the usual Gemini position. Drag the box onto the watermark.';
   render();
 }
 
@@ -92,7 +115,7 @@ function fixRegion(ctx) {
 }
 
 function render() {
-  pctx.drawImage(video, 0, 0, preview.width, preview.height);
+  pctx.drawImage(source, 0, 0, preview.width, preview.height);
   if (box && showFixed) fixRegion(pctx);
   if (!box) return;
   boxEl.hidden = false;
@@ -160,6 +183,23 @@ runBtn.addEventListener('click', async () => {
   out.width = preview.width;
   out.height = preview.height;
   const octx = out.getContext('2d', { willReadFrequently: true });
+
+  if (!isVideo) {
+    octx.drawImage(source, 0, 0);
+    fixRegion(octx);
+    // PNG unless the original was a JPEG, so a photo is not re-compressed into
+    // a file several times its own size just to strip one mark off it
+    const type = srcType === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+    const blob = await new Promise((r) => out.toBlob(r, type, 0.95));
+    downloadEl.href = URL.createObjectURL(blob);
+    downloadEl.download = type === 'image/jpeg' ? 'clean.jpg' : 'clean.png';
+    downloadEl.hidden = false;
+    statusEl.textContent = `Done — ${(blob.size / 1048576).toFixed(1)} MB, watermark removed.`;
+    busy = false;
+    runBtn.disabled = false;
+    render();
+    return;
+  }
 
   // Route the element's audio through WebAudio rather than the speakers, so the
   // recorder gets the original track without the clip playing out loud.
