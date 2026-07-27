@@ -1,0 +1,95 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 40px 24px 64px;
+  font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: #e8e8ea;
+  background: #131316;
+}
+
+header { max-width: 880px; margin: 0 auto 28px; }
+h1 { margin: 0 0 6px; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+header p { margin: 0; color: #96969e; }
+
+#drop {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #96969e;
+  border: 1px dashed #34343a;
+  border-radius: 12px;
+  transition: border-color .15s, background .15s;
+}
+#drop.over { border-color: #6a7cff; background: #1a1a24; }
+#drop.compact { padding: 16px; margin-bottom: 24px; }
+
+.pick {
+  padding: 8px 16px;
+  color: #e8e8ea;
+  background: #26262c;
+  border: 1px solid #34343a;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pick:hover { background: #2e2e36; }
+
+#editor { max-width: 880px; margin: 0 auto; }
+
+#stage { position: relative; line-height: 0; }
+#preview { max-width: 100%; height: auto; border-radius: 10px; background: #000; }
+
+#video { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: .01; pointer-events: none; }
+
+#box {
+  position: absolute;
+  border: 1.5px dashed rgba(106, 124, 255, .55);
+  cursor: move;
+  touch-action: none;
+}
+/* the area actually painted out is the inscribed diamond, so show that */
+#box::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(106, 124, 255, .3);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+#box i {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  background: #6a7cff;
+  border-radius: 2px;
+}
+#box i[data-h=nw] { left: -6px; top: -6px; cursor: nwse-resize; }
+#box i[data-h=ne] { right: -6px; top: -6px; cursor: nesw-resize; }
+#box i[data-h=sw] { left: -6px; bottom: -6px; cursor: nesw-resize; }
+#box i[data-h=se] { right: -6px; bottom: -6px; cursor: nwse-resize; }
+
+.controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+button, #download {
+  padding: 8px 16px;
+  font: inherit;
+  color: #e8e8ea;
+  background: #26262c;
+  border: 1px solid #34343a;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+}
+button:hover, #download:hover { background: #2e2e36; }
+button:disabled { opacity: .5; cursor: default; }
+
+.primary { background: #4d5ee8; border-color: #4d5ee8; }
+.primary:hover:not(:disabled) { background: #5c6cf0; }
+
+#download { margin-left: auto; background: #1d3a2a; border-color: #2c5a41; }
+#download:hover { background: #234734; }
+
+#status { min-height: 22px; margin: 14px 0 0; color: #96969e; }

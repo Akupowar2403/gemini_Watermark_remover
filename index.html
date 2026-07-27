@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watermark remover</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Watermark remover</h1>
+  <p>Paints out a fixed watermark from a video. Everything runs in this tab — the file never leaves your machine.</p>
+</header>
+
+<section id="drop">
+  <label class="pick">
+    <input type="file" id="file" accept="video/*" hidden>
+    Choose a video
+  </label>
+  <span>or drag one here</span>
+</section>
+
+<section id="editor" hidden>
+  <div id="stage">
+    <canvas id="preview"></canvas>
+    <div id="box" hidden>
+      <i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="redetect">Auto-detect</button>
+    <button id="compare">Show original</button>
+    <button id="run" class="primary">Remove watermark</button>
+    <a id="download" hidden>Download</a>
+  </div>
+
+  <p id="status"></p>
+</section>
+
+<!-- kept in the render tree, not display:none — a hidden element can stop
+     decoding frames, which is what requestVideoFrameCallback rides on -->
+<video id="video" playsinline></video>
+
+<script src="src/inpaint.js"></script>
+<script src="src/detect.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
